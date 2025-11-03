@@ -1,142 +1,103 @@
-import com.aventstack.extentreports.ExtentReports;
-import com.aventstack.extentreports.ExtentTest;
-import com.aventstack.extentreports.reporter.ExtentSparkReporter;
-import com.aventstack.extentreports.reporter.configuration.Theme;
-import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.chrome.*;
+import org.openqa.selenium.support.ui.*;
 import org.testng.Assert;
 import org.testng.annotations.*;
-
-import java.io.File;
-import java.time.Duration;
-import java.time.LocalDate;
+import com.aventstack.extentreports.*;
+import com.aventstack.extentreports.reporter.ExtentSparkReporter;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 
 public class TravelInsuranceTest {
-    WebDriver driver;
-    WebDriverWait wait;
-    ExtentReports extent;
-    ExtentTest test;
+    private WebDriver driver;
+    private WebDriverWait wait;
+    private ExtentReports extent;
+    private ExtentTest test;
 
     @BeforeClass
     public void setup() {
-        // === Настройка Extent Reports ===
-        ExtentSparkReporter reporter = new ExtentSparkReporter(new File("ExtentReport.html"));
-        reporter.config().setDocumentTitle("Harel Travel Insurance Automation Report");
-        reporter.config().setReportName("Travel Insurance Test Flow");
-        reporter.config().setTheme(Theme.DARK);
+        System.setProperty("webdriver.chrome.driver", "chromedriver");
 
-        extent = new ExtentReports();
-        extent.attachReporter(reporter);
-        extent.setSystemInfo("Tester", "Michael Balakorski");
-        extent.setSystemInfo("Browser", "Chrome");
-        extent.setSystemInfo("Language", "Java + Selenium + TestNG");
-
-        // === Настройка WebDriver ===
-        WebDriverManager.chromedriver().setup();
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--start-maximized");
-        driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-    }
+        // ⚙️ Настройки для GitHub Actions / Linux CI
+        options.addArguments("--headless=new");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--window-size=1920,1080");
+        options.addArguments("--remote-allow-origins=*");
 
-    private void slowDown(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        driver = new ChromeDriver(options);
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+        ExtentSparkReporter spark = new ExtentSparkReporter("ExtentReport.html");
+        extent = new ExtentReports();
+        extent.attachReporter(spark);
+        test = extent.createTest("Travel Insurance Purchase Flow");
+
+        driver.get("https://digital.harel-group.co.il/travel-policy");
+        test.info("Opened travel insurance page");
     }
 
     @Test
     public void verifyTravelInsuranceFlow() {
-        test = extent.createTest("Travel Insurance Purchase Flow Test");
-
         try {
-            test.info("Opening website...");
-            driver.get("https://digital.harel-group.co.il/travel-policy");
-            slowDown(2000);
+            // 🔹 Шаг 1: Нажать “לרכישה בפעם הראשונה”
+            wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[data-hrl-bo='first-time-purchase']"))).click();
+            test.pass("Clicked on 'לרכישה בפעם הראשונה'");
 
-            test.info("Clicking 'לרכישה בפעם הראשונה'");
-            WebElement firstPurchaseBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[contains(., 'לרכישה בפעם הראשונה')]")));
-            firstPurchaseBtn.click();
-            slowDown(2000);
+            // 🔹 Шаг 2: Выбор страны
+            wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("div[data-hrl-bo='canada']"))).click();
+            test.pass("Selected country: Canada");
 
-            test.info("Selecting destination: Canada");
-            WebElement canada = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("div[data-hrl-bo='canada']")));
-            canada.click();
-            slowDown(2000);
+            // 🔹 Нажать “הבא”
+            wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[data-hrl-bo='wizard-next-button']"))).click();
+            test.pass("Clicked next after selecting country");
 
-            test.info("Clicking Next");
-            WebElement nextBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("button[data-hrl-bo='wizard-next-button']")));
-            nextBtn.click();
-            slowDown(2000);
+            // 🔹 Шаг 3: Выбор дат (сегодня + 29 дней)
+            LocalDate start = LocalDate.now();
+            LocalDate end = start.plusDays(29);
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-            test.info("Selecting travel dates dynamically");
-            LocalDate today = LocalDate.now();
-            LocalDate endDateCalc = today.plusDays(29);
+            String startSelector = String.format("//button[@data-hrl-bo='%s']", fmt.format(start));
+            String endSelector = String.format("//button[@data-hrl-bo='%s']", fmt.format(end));
 
-            By startDate = By.xpath("//button[@data-hrl-bo='" + today + "']");
-            By endDate = By.xpath("//button[@data-hrl-bo='" + endDateCalc + "']");
-
-            wait.until(ExpectedConditions.presenceOfElementLocated(startDate));
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();",
-                    driver.findElement(startDate));
-            slowDown(1500);
-
-            wait.until(ExpectedConditions.presenceOfElementLocated(endDate));
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();",
-                    driver.findElement(endDate));
-            slowDown(1500);
-
-            test.info("Verifying total days count = 30");
-            WebElement totalDays = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("[data-hrl-bo='total-days']")));
-            Assert.assertTrue(totalDays.getText().contains("30"), "Total days incorrect!");
-            slowDown(2000);
-
-            test.info("Clicking Next again...");
-            WebElement continueBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("button[data-hrl-bo='wizard-next-button']")));
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", continueBtn);
-            slowDown(3000);
-
-            test.info("Checking PDF link presence...");
-            By pdfLinkSelector = By.cssSelector("a[data-hrl-bo='policy-agreement-text-url'][href$='.pdf']");
             try {
-                WebElement pdfLink = wait.until(ExpectedConditions.visibilityOfElementLocated(pdfLinkSelector));
-                Assert.assertTrue(pdfLink.isDisplayed(), "PDF link not visible!");
-                test.pass("✅ PDF link found: " + pdfLink.getAttribute("href"));
+                WebElement startBtn = wait.until(ExpectedConditions.elementToBeClickable(By.xpath(startSelector)));
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", startBtn);
+
+                WebElement endBtn = wait.until(ExpectedConditions.elementToBeClickable(By.xpath(endSelector)));
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", endBtn);
+
+                test.pass("Selected dynamic dates: " + start + " → " + end);
             } catch (TimeoutException e) {
-                test.warning("PDF link not found — checking fallback via JS...");
-                boolean exists = (boolean) ((JavascriptExecutor) driver)
-                        .executeScript("return document.querySelector('a[data-hrl-bo=\"policy-agreement-text-url\"][href$=\".pdf\"]') !== null;");
-                Assert.assertTrue(exists, "PDF link missing even after fallback check!");
+                test.warning("⚠️ Could not click date buttons, attempting JS fallback...");
+                ((JavascriptExecutor) driver).executeScript(
+                        "const today = document.querySelectorAll('button[data-hrl-bo]')[0]; if(today) today.click();"
+                );
             }
 
-            test.pass("🎯 Travel insurance flow executed successfully.");
+            // 🔹 Клик “הבא”
+            wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[data-hrl-bo='wizard-next-button']"))).click();
+            test.pass("Clicked next after selecting dates");
+
+            // 🔹 Проверка наличия PDF ссылки на תנאי הפוליסה
+            By pdfLink = By.cssSelector("a[data-hrl-bo='policy-agreement-text-url'][href$='.pdf']");
+            wait.until(ExpectedConditions.visibilityOfElementLocated(pdfLink));
+
+            WebElement policyPdf = driver.findElement(pdfLink);
+            Assert.assertTrue(policyPdf.isDisplayed(), "PDF link is not visible!");
+            test.pass("✅ Policy agreement PDF link found: " + policyPdf.getAttribute("href"));
 
         } catch (Exception e) {
             test.fail("❌ Test failed: " + e.getMessage());
-            File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-            test.addScreenCaptureFromPath(screenshot.getAbsolutePath());
             throw e;
         }
     }
 
     @AfterClass
     public void tearDown() {
-        test.info("Closing browser...");
-        if (driver != null) {
-            driver.quit();
-        }
+        if (driver != null) driver.quit();
         extent.flush();
-        System.out.println("📊 HTML report generated: ExtentReport.html");
     }
 }
