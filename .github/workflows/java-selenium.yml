@@ -1,4 +1,4 @@
-name: Java Selenium CI + Allure + GitHub Pages + Summary Link
+name: Java Selenium CI + Allure + GitHub Pages + Summary Link (Fixed)
 
 on:
   push:
@@ -6,8 +6,10 @@ on:
   pull_request:
 
 jobs:
-  test:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -22,37 +24,12 @@ jobs:
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
 
-      - name: Build and Run Tests
+      - name: Run Selenium Tests with Allure
         run: |
           mvn clean test -Dtest=TravelInsuranceTest || true
-
-      - name: Generate Allure Report
-        run: |
           mvn allure:report || true
 
-      - name: Upload Allure Report to Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Allure-Report
-          path: target/site/allure-maven-plugin/
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download Allure Report from artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Allure-Report
-          path: target/site/allure-maven-plugin/
-
       - name: Deploy Allure Report to GitHub Pages 🌐
-        id: deploy
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
