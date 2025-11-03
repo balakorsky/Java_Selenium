@@ -41,11 +41,11 @@ public class TravelInsuranceTest {
             driver.get("https://digital.harel-group.co.il/travel-policy");
             test.info("Opened Harel travel policy page");
 
-            // Step 1
+            // Step 1 (firts-time purchaes)
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[data-hrl-bo='first-time-purchase']"))).click();
             test.pass("Clicked first-time purchase");
 
-            // Step 2
+            // Step 2 (country selection)
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("div[data-hrl-bo='canada']"))).click();
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[data-hrl-bo='wizard-next-button']"))).click();
             test.pass("Selected Canada and clicked Next");
@@ -75,7 +75,7 @@ public class TravelInsuranceTest {
             By pdf = By.cssSelector("a[data-hrl-bo='policy-agreement-text-url'][href$='.pdf']");
             wait.until(ExpectedConditions.visibilityOfElementLocated(pdf));
             Assert.assertTrue(driver.findElement(pdf).isDisplayed(), "PDF link missing");
-            test.pass("PDF link visible ✅");
+            test.pass("PDF link visible as expected");
             testPassed = true;
 
         } catch (Exception e) {
