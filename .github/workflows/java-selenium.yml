@@ -1,4 +1,4 @@
-name: Java Selenium CI + Allure + GitHub Pages
+name: Java Selenium CI + Allure + GitHub Pages + Summary Link
 
 on:
   push:
@@ -52,8 +52,16 @@ jobs:
           path: target/site/allure-maven-plugin/
 
       - name: Deploy Allure Report to GitHub Pages 🌐
+        id: deploy
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: target/site/allure-maven-plugin
+
+      - name: Add Allure Report link to Summary 📊
+        if: always()
+        run: |
+          echo "### ✅ Allure Report successfully generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [Open Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)" >> $GITHUB_STEP_SUMMARY
