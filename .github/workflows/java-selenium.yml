@@ -1,4 +1,4 @@
-name: Java Selenium CI + Allure + GitHub Pages + Summary Link (Fixed)
+name: Java Selenium CI + Allure + Auto GitHub Pages
 
 on:
   push:
@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -24,7 +26,7 @@ jobs:
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
 
-      - name: Run Selenium Tests with Allure
+      - name: Run Selenium Tests and generate Allure Report
         run: |
           mvn clean test -Dtest=TravelInsuranceTest || true
           mvn allure:report || true
@@ -36,9 +38,20 @@ jobs:
           publish_branch: gh-pages
           publish_dir: target/site/allure-maven-plugin
 
+      - name: Enable GitHub Pages automatically ⚙️
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/pages \
+            -f source='{"branch":"gh-pages","path":"/"}'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Add Allure Report link to Summary 📊
         if: always()
         run: |
           echo "### ✅ Allure Report successfully generated" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "🔗 [Open Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
