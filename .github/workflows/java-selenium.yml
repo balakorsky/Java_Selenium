@@ -1,0 +1,31 @@
+name: Java Selenium Tests
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up JDK 20
+        uses: actions/setup-java@v4
+        with:
+          java-version: '20'
+          distribution: 'temurin'
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Install dependencies and run tests
+        run: mvn clean test -Dtest=TravelInsuranceTest
+      - name: Upload Extent Report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExtentReport
+          path: ExtentReport.html
