@@ -1,2 +1,2 @@
 "Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
-"passed","Wed Nov 05 17:28:06 UTC 2025","Wed Nov 05 17:28:09 UTC 2025","3210","Surefire suite","Surefire test","TravelInsuranceTest","TravelInsuranceTest","verifyTravelInsuranceFlow","Проверка формы страхования с выбором дат и PDF",""
+"passed","Wed Nov 05 17:42:39 UTC 2025","Wed Nov 05 17:42:42 UTC 2025","2665","Surefire suite","Surefire test","TravelInsuranceTest","TravelInsuranceTest","verifyTravelInsuranceFlow","Проверка формы страхования с выбором дат и PDF",""
