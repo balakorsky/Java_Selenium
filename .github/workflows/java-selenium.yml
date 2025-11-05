@@ -1,13 +1,55 @@
-name: Java Selenium CI + Allure + GitHub Pages
+name: Java Selenium CI with Allure Report
 
 on:
   push:
-    branches: [ master ]
+    branches: [ "master", "main" ]
   pull_request:
+    branches: [ "master", "main" ]
 
 jobs:
-  build-and-deploy:
+  test:
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Install dependencies
+        run: mvn -B dependency:resolve dependency:resolve-plugins
+
+      - name: Run Selenium Tests (Headless)
+        env:
+          CI: true
+        run: mvn clean test -Dtest=TravelInsuranceTest
+
+      - name: Generate Allure Report
+        run: mvn allure:report
+
+      - name: Upload Allure results artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Allure-Report
+          path: target/site/allure-maven-plugin/
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: success()
+
     permissions:
       contents: write
       pages: write
@@ -17,31 +59,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Download Allure Report artifact
+        uses: actions/download-artifact@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          name: Allure-Report
+          path: ./allure-report
 
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-
-      - name: Run Selenium Tests and generate Allure Report
-        run: |
-          mvn clean test -Dtest=TravelInsuranceTest || true
-          mvn allure:report || true
-
-      - name: Deploy Allure Report to GitHub Pages 🌐
+      - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: target/site/allure-maven-plugin
-
-      - name: Add Allure Report link to Summary 📊
-        if: always()
-        run: |
-          echo "### ✅ Allure Report successfully generated" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 [Open Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+          publish_dir: ./allure-report
